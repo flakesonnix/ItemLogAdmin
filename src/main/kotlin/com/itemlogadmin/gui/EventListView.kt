@@ -9,7 +9,8 @@ import org.bukkit.inventory.ItemStack
 import java.util.UUID
 
 class EventListView(
-    private val queryService: QueryService
+    private val queryService: QueryService,
+    private val cache: java.util.concurrent.ConcurrentHashMap<UUID, List<com.itemlogadmin.model.ItemEventView>>? = null
 ) {
     fun open(player: Player, targetId: UUID?, page: Int, filterType: String?, onOpen: (org.bukkit.inventory.Inventory) -> Unit) {
         val title = "Events — ${targetId?.toString()?.take(8) ?: "All"} p${page + 1}" + if (filterType != null) " [$filterType]" else ""
@@ -27,6 +28,7 @@ class EventListView(
             Bukkit.getPluginManager().getPlugin("ItemLogAdmin")!!,
             Runnable {
                 val (events, total) = queryService.getEvents(targetId, filterType, page, 45)
+                if (cache != null) cache[player.uniqueId] = events
                 Bukkit.getScheduler().runTask(
                     Bukkit.getPluginManager().getPlugin("ItemLogAdmin")!!,
                     Runnable {

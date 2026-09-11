@@ -31,6 +31,7 @@ class GuiManager(
     private val state = ConcurrentHashMap<UUID, GuiState>()
     private val eventDetailsView = EventDetailsView(queryRepo)
     private val restoreConfirmView = RestoreConfirmationView(restoreService)
+    private val eventCache = ConcurrentHashMap<UUID, List<com.itemlogadmin.model.ItemEventView>>()
 
     fun openPlayerList(player: Player, page: Int, query: String?) {
         state[player.uniqueId] = GuiState.PlayerList(page, query)
@@ -73,7 +74,7 @@ class GuiManager(
         })
     }
 
-    private val eventListView = EventListView(queryService)
+    private val eventListView = EventListView(queryService, eventCache)
 
     fun openEventList(player: Player, targetId: UUID?, page: Int, filterType: String? = null) {
         state[player.uniqueId] = GuiState.EventList(targetId, page, filterType)
@@ -126,14 +127,11 @@ class GuiManager(
                 50 -> openEventList(player, s.playerId, s.page + 1, s.filter)
                 else -> {
                     if (item.type == Material.AIR) return
-                    // Stage 4: open details — need eventId from slot
-                    // For now, try to parse from displayName
-                    val meta = item.itemMeta ?: return
-                    val name = meta.displayName ?: return
-                    val idStr = name.substringAfter("§7").trim().take(8)
-                    // In real Stage 4, we store mapping slot -> eventId
-                    player.sendMessage("§7Opening details for $idStr — Stage 4")
-                    // TODO: eventDetailsView.open(player, eventId)
+                    val events = eventCache[player.uniqueId] ?: return
+                    val ev = events.getOrNull(slot) ?: return
+                    // explicit state: store eventId
+                    state[player.uniqueId] = GuiState.EventDetails(ev.eventId)
+                    eventDetailsView.open(player, ev.eventId)
                 }
             }
         } else if (s is GuiState.EventDetails) {
