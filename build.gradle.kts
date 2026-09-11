@@ -1,8 +1,8 @@
 plugins {
     kotlin("jvm") version "2.0.21"
-    id("com.github.johnrengelman.shadow") version "8.1.1"
     idea
     id("com.diffplug.spotless") version "7.0.2"
+    // Shadow removed — manual fatJar to avoid ASM 65 on Java 21
 }
 group = "com.itemlogadmin"
 version = "1.0.0-SNAPSHOT"
@@ -28,12 +28,22 @@ tasks.withType<JavaCompile> {
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21) } }
 tasks.processResources { filteringCharset = "UTF-8" }
 tasks.jar { archiveBaseName.set("itemlogadmin") }
-tasks.shadowJar {
+
+// Manual fatJar — bundles runtimeClasspath without shadow ASM
+val shadowJar by tasks.registering(Jar::class) {
     archiveBaseName.set("itemlogadmin")
     archiveClassifier.set("")
-    mergeServiceFiles()
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(sourceSets.main.get().output)
+    dependsOn(configurations.runtimeClasspath)
+    from({
+        configurations.runtimeClasspath.get()
+            .filter { it.name.endsWith("jar") }
+            .map { zipTree(it) }
+    })
 }
-tasks.build { dependsOn(tasks.shadowJar) }
+
+tasks.build { dependsOn(shadowJar) }
 tasks.test { useJUnitPlatform() }
 idea {
     module {
