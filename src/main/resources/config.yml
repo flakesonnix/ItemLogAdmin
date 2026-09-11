@@ -1,0 +1,14 @@
+database:
+  type: sqlite
+  sqlite:
+    file: database.db
+  mysql:
+    host: localhost
+    port: 3306
+    database: itemlog
+    user: root
+    password: ""
+    params: "useSSL=false&allowPublicKeyRetrieval=true"
+gui:
+  title: "ItemLog Admin"
+  rows: 6

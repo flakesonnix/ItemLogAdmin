@@ -1,0 +1,14 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Paper Run (1.26.2)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="io.papermc.paperclip.Paperclip" />
+    <!-- Or use Paper's main: io.papermc.paper.Main — adjust for your server jar -->
+    <option name="VM_PARAMETERS" value="-Xmx2G -Xms1G" />
+    <option name="PROGRAM_PARAMETERS" value="nogui" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/run" />
+    <module name="template-plugin" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+      <option name="Gradle.BeforeRunTask" enabled="true" tasks="shadowJar" externalProjectPath="$PROJECT_DIR$" vmOptions="" scriptParameters="" />
+    </method>
+  </configuration>
+</component>

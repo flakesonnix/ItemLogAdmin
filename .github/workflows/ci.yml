@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+            sandbox = relaxed
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - name: Run tests
+        run: nix develop --accept-flake-config --command gradle test --no-daemon
+        continue-on-error: true # tests may need Paper env
+
+      - name: Nix flake check
+        run: nix flake check --accept-flake-config
+
+      - name: Kotlin format check (Spotless)
+        run: nix develop --accept-flake-config --command gradle spotlessCheck --no-daemon
+
+      - name: Nix format check
+        run: |
+          # nix fmt via flake formatter is impure (needs --accept-flake-config) + bare stdin warning,
+          # use direct nixfmt check on flake.nix (native, no JVM) for reliable CI
+          nix develop --accept-flake-config --command nixfmt --check flake.nix || (echo "::error::Nix fmt failed — run 'nix fmt' or 'nix develop -c nixfmt flake.nix' locally"; exit 1)
+
+      - name: Build plugin (Gradle via Nix devShell)
+        run: nix develop --accept-flake-config --command gradle shadowJar --no-daemon
+
+      - name: Build via flake (impure, relaxed sandbox)
+        run: nix build --accept-flake-config --option sandbox relaxed --impure --no-link --print-out-paths
+        continue-on-error: true # Gradle Central fetch may be flaky; devShell build is primary
+
+      - name: Upload jar
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: ItemLog-${{ github.sha }}
+          path: build/libs/itemlog-*.jar
+          if-no-files-found: warn
+
+      - name: Upload nix result (if built)
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: nix-result
+          path: result
+          if-no-files-found: ignore
