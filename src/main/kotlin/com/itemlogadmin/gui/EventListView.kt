@@ -1,16 +1,15 @@
 package com.itemlogadmin.gui
 
-import com.itemlogadmin.model.GuiState
 import com.itemlogadmin.service.QueryService
+import java.util.UUID
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import java.util.UUID
 
 class EventListView(
     private val queryService: QueryService,
-    private val cache: java.util.concurrent.ConcurrentHashMap<UUID, List<com.itemlogadmin.model.ItemEventView>>? = null
+    private val cache: java.util.concurrent.ConcurrentHashMap<UUID, List<com.itemlogadmin.model.ItemEventView>>? = null,
 ) {
     fun open(player: Player, targetId: UUID?, page: Int, filterType: String?, onOpen: (org.bukkit.inventory.Inventory) -> Unit) {
         val title = "Events — ${targetId?.toString()?.take(8) ?: "All"} p${page + 1}" + if (filterType != null) " [$filterType]" else ""
@@ -33,7 +32,11 @@ class EventListView(
                     Bukkit.getPluginManager().getPlugin("ItemLogAdmin")!!,
                     Runnable {
                         for ((i, ev) in events.withIndex()) {
-                            val mat = try { Material.valueOf(ev.material ?: "STONE") } catch (_: Exception) { Material.PAPER }
+                            val mat = try {
+                                Material.valueOf(ev.material ?: "STONE")
+                            } catch (_: Exception) {
+                                Material.PAPER
+                            }
                             val icon = ItemStack(mat)
                             val meta = icon.itemMeta!!
                             meta.setDisplayName("§e${ev.type} §7${ev.eventId.toString().take(8)}")
@@ -42,8 +45,8 @@ class EventListView(
                                     "§7${java.time.Instant.ofEpochMilli(ev.timestamp)}",
                                     "§7${ev.world} ${ev.x.toInt()},${ev.y.toInt()},${ev.z.toInt()}",
                                     "§7Material: ${ev.material}",
-                                    "§7Click for details"
-                                )
+                                    "§7Click for details",
+                                ),
                             )
                             icon.itemMeta = meta
                             inv.setItem(i, icon)
@@ -51,12 +54,20 @@ class EventListView(
                         // pagination
                         if (page > 0) {
                             val prev = ItemStack(Material.ARROW)
-                            prev.itemMeta?.let { it.setDisplayName("§aPrev"); it.setLore(listOf("§7Page $page")); prev.itemMeta = it }
+                            prev.itemMeta?.let {
+                                it.setDisplayName("§aPrev")
+                                it.setLore(listOf("§7Page $page"))
+                                prev.itemMeta = it
+                            }
                             inv.setItem(48, prev)
                         }
                         if ((page + 1) * 45 < total) {
                             val next = ItemStack(Material.ARROW)
-                            next.itemMeta?.let { it.setDisplayName("§aNext"); it.setLore(listOf("§7Page ${page + 2}")); next.itemMeta = it }
+                            next.itemMeta?.let {
+                                it.setDisplayName("§aNext")
+                                it.setLore(listOf("§7Page ${page + 2}"))
+                                next.itemMeta = it
+                            }
                             inv.setItem(50, next)
                         }
                         // time filter paper at 46
@@ -67,9 +78,9 @@ class EventListView(
                         timeItem.itemMeta = tm
                         inv.setItem(46, timeItem)
                         onOpen(inv)
-                    }
+                    },
                 )
-            }
+            },
         )
     }
 }

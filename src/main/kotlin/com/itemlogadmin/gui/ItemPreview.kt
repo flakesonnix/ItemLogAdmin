@@ -1,8 +1,8 @@
 package com.itemlogadmin.gui
 
-import org.bukkit.inventory.ItemStack
-import org.bukkit.Material
 import com.google.gson.JsonParser
+import org.bukkit.Material
+import org.bukkit.inventory.ItemStack
 
 object ItemPreview {
     fun fromJsonOrFallback(json: String?, fallbackMaterial: String?): ItemStack {
@@ -26,7 +26,11 @@ object ItemPreview {
             } catch (_: Exception) {
             }
         }
-        val mat = try { Material.valueOf(fallbackMaterial ?: "PAPER") } catch (_: Exception) { Material.PAPER }
+        val mat = try {
+            Material.valueOf(fallbackMaterial ?: "PAPER")
+        } catch (_: Exception) {
+            Material.PAPER
+        }
         return ItemStack(mat)
     }
 }

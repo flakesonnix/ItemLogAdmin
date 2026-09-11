@@ -1,14 +1,14 @@
 package com.itemlogadmin.gui
 
 import com.itemlogadmin.service.RestoreService
+import java.util.UUID
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import java.util.UUID
 
 class RestoreConfirmationView(
-    private val restoreService: RestoreService
+    private val restoreService: RestoreService,
 ) {
     fun open(player: Player, eventId: UUID, onConfirm: () -> Unit, onCancel: () -> Unit) {
         val inv = Bukkit.createInventory(null, 27, "Restore? ${eventId.toString().take(8)}")

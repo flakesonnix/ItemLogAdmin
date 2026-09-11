@@ -1,15 +1,15 @@
 package com.itemlogadmin.gui
 
 import com.itemlogadmin.repository.ItemLogQueryRepository
+import java.nio.ByteBuffer
+import java.util.UUID
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import java.nio.ByteBuffer
-import java.util.UUID
 
 class EventDetailsView(
-    private val queryRepo: ItemLogQueryRepository
+    private val queryRepo: ItemLogQueryRepository,
 ) {
     fun open(player: Player, eventId: UUID) {
         if (!player.hasPermission("itemlog.admin") && !player.hasPermission("itemlog.view")) {
@@ -76,8 +76,8 @@ class EventDetailsView(
                                 "§7World: ${world ?: "?"}",
                                 "§7Material: ${material ?: "?"}",
                                 "§7Restored: ${if (restored) "§cYes" else "§aNo"}",
-                                "§7Click restore to confirm"
-                            )
+                                "§7Click restore to confirm",
+                            ),
                         )
                         preview.itemMeta = pMeta
                         inv.setItem(13, preview)
@@ -107,9 +107,9 @@ class EventDetailsView(
                         }
                         inv.setItem(49, back)
                         player.openInventory(inv)
-                    }
+                    },
                 )
-            }
+            },
         )
     }
 

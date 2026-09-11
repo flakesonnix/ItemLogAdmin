@@ -51,8 +51,8 @@ class ItemLogQueryRepository(private val ds: DataSource) {
                                 source = rs.getString("source"),
                                 hasBefore = rs.getString("before_json") != null,
                                 hasAfter = rs.getString("after_json") != null,
-                                restored = false // TODO: check restorations table
-                            )
+                                restored = false, // TODO: check restorations table
+                            ),
                         )
                     }
                     return list

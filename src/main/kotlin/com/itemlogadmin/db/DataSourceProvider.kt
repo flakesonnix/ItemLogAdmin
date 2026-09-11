@@ -2,9 +2,9 @@ package com.itemlogadmin.db
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 import javax.sql.DataSource
+import org.bukkit.plugin.java.JavaPlugin
 
 class DataSourceProvider(private val plugin: JavaPlugin) {
     private var ds: HikariDataSource? = null

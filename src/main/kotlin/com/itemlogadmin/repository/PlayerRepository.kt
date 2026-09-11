@@ -8,7 +8,7 @@ data class PlayerInfo(
     val uuid: UUID,
     val name: String?,
     val lastSeen: Long,
-    val eventCount: Long
+    val eventCount: Long,
 )
 
 class PlayerRepository(private val ds: DataSource) {
@@ -21,7 +21,7 @@ class PlayerRepository(private val ds: DataSource) {
                 SELECT player_uuid, MAX(timestamp) as lastSeen, COUNT(*) as cnt
                 FROM item_events WHERE player_uuid IS NOT NULL
                 GROUP BY player_uuid HAVING MAX(CASE WHEN material = ? THEN 1 ELSE 0 END) = 1
-                """.trimIndent()
+                """.trimIndent(),
             ).use { _ -> }
         }
         // Simpler: search via Bukkit offline players, not DB, for Stage 2
@@ -35,7 +35,7 @@ class PlayerRepository(private val ds: DataSource) {
             """
             SELECT player_uuid, MAX(timestamp) as lastSeen, COUNT(*) as cnt
             FROM item_events WHERE player_uuid IS NOT NULL
-            """.trimIndent()
+            """.trimIndent(),
         )
         val params = mutableListOf<Any?>()
         if (!query.isNullOrBlank()) {

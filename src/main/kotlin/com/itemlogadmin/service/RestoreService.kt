@@ -1,18 +1,18 @@
 package com.itemlogadmin.service
 
 import com.itemlogadmin.repository.ItemLogQueryRepository
+import java.nio.ByteBuffer
+import java.util.UUID
+import javax.sql.DataSource
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
-import java.nio.ByteBuffer
-import java.util.UUID
-import javax.sql.DataSource
 
 class RestoreService(
     private val plugin: JavaPlugin,
     private val ds: DataSource,
-    private val queryRepo: ItemLogQueryRepository
+    private val queryRepo: ItemLogQueryRepository,
 ) {
     sealed class Result {
         data class Success(val restorationId: UUID) : Result()
@@ -34,8 +34,14 @@ class RestoreService(
                     if (rs.next()) {
                         val adminBytes = rs.getBytes("admin_uuid")
                         val who = if (adminBytes != null) {
-                            try { Bukkit.getOfflinePlayer(bytesToUuid(adminBytes)).name ?: adminBytes.toString() } catch (_: Exception) { "unknown" }
-                        } else "unknown"
+                            try {
+                                Bukkit.getOfflinePlayer(bytesToUuid(adminBytes)).name ?: adminBytes.toString()
+                            } catch (_: Exception) {
+                                "unknown"
+                            }
+                        } else {
+                            "unknown"
+                        }
                         return Result.AlreadyRestored(who)
                     }
                 }
@@ -106,10 +112,10 @@ class RestoreService(
             ds.connection.use { c ->
                 c.prepareStatement(
                     """
-                    INSERT INTO restorations 
+                    INSERT INTO restorations
                     (restoration_id, event_id, admin_uuid, target_uuid, timestamp, world, x, y, z, yaw, pitch, result_json, status)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """.trimIndent()
+                    """.trimIndent(),
                 ).use { ps ->
                     ps.setBytes(1, uuidToBytes(restorationId))
                     ps.setBytes(2, uuidToBytes(eventId))

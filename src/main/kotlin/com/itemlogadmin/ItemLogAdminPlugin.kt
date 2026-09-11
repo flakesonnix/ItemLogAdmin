@@ -6,8 +6,8 @@ import com.itemlogadmin.repository.ItemLogQueryRepository
 import com.itemlogadmin.repository.PlayerRepository
 import com.itemlogadmin.service.QueryService
 import com.itemlogadmin.service.RestoreService
-import org.bukkit.plugin.java.JavaPlugin
 import javax.sql.DataSource
+import org.bukkit.plugin.java.JavaPlugin
 
 class ItemLogAdminPlugin : JavaPlugin() {
     lateinit var dataSource: DataSource
