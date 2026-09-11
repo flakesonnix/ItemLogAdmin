@@ -2,6 +2,7 @@ package com.itemlogadmin.gui
 
 import com.itemlogadmin.gui.EventDetailsView
 import com.itemlogadmin.gui.EventListView
+import com.itemlogadmin.gui.RestoreConfirmationView
 import com.itemlogadmin.model.GuiState
 import com.itemlogadmin.repository.PlayerRepository
 import com.itemlogadmin.service.QueryService
@@ -29,6 +30,7 @@ class GuiManager(
 
     private val state = ConcurrentHashMap<UUID, GuiState>()
     private val eventDetailsView = EventDetailsView(queryRepo)
+    private val restoreConfirmView = RestoreConfirmationView(restoreService)
 
     fun openPlayerList(player: Player, page: Int, query: String?) {
         state[player.uniqueId] = GuiState.PlayerList(page, query)
@@ -137,11 +139,38 @@ class GuiManager(
         } else if (s is GuiState.EventDetails) {
             val item = e.currentItem ?: return
             if (slot == 29) {
-                // Restore button
-                player.sendMessage("§7Restore confirmation — Stage 5")
+                // Restore -> confirmation
+                val eventId = (s as? GuiState.EventDetails)?.eventId ?: return
+                state[player.uniqueId] = GuiState.RestoreConfirm(eventId, player.uniqueId)
+                restoreConfirmView.open(player, eventId, onConfirm = {
+                    // will be handled via RestoreConfirm state click
+                }, onCancel = {
+                    openEventList(player, null, 0)
+                })
             } else if (slot == 49) {
-                // Back
                 openEventList(player, null, 0)
+            }
+        } else if (s is GuiState.RestoreConfirm) {
+            val item = e.currentItem ?: return
+            when (slot) {
+                11 -> {
+                    // Confirm
+                    val res = restoreService.restore(s.eventId, player, player)
+                    when (res) {
+                        is RestoreService.Result.Success -> player.sendMessage("§aRestored ${res.restorationId.toString().take(8)}")
+                        is RestoreService.Result.AlreadyRestored -> player.sendMessage("§cAlready restored by ${res.by}")
+                        is RestoreService.Result.NotFound -> player.sendMessage("§cNot found")
+                        is RestoreService.Result.Failed -> player.sendMessage("§cFailed: ${res.reason}")
+                        is RestoreService.Result.NoPermission -> player.sendMessage("§cNo permission: ${res.needed}")
+                    }
+                    player.closeInventory()
+                    state.remove(player.uniqueId)
+                }
+                15 -> {
+                    // Cancel -> back to details
+                    state[player.uniqueId] = GuiState.EventDetails(s.eventId)
+                    eventDetailsView.open(player, s.eventId)
+                }
             }
         }
     }
