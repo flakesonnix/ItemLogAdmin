@@ -65,8 +65,8 @@ jobs:
         uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: ItemLog-${{ github.sha }}
-          path: build/libs/itemlog-*.jar
+          name: ItemLogAdmin-${{ github.sha }}
+          path: build/libs/itemlogadmin-*.jar
           if-no-files-found: warn
 
       - name: Upload nix result (if built)

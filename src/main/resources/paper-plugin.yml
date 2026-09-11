@@ -1,0 +1,15 @@
+name: ItemLogAdmin
+version: '1.0.0-SNAPSHOT'
+main: com.itemlogadmin.ItemLogAdminPlugin
+api-version: '1.21'
+author: you
+description: Admin GUI for ItemLog — investigate & restore items.
+commands:
+  itemlog:
+    description: Open ItemLog admin panel
+    usage: /itemlog [player]
+    permission: itemlog.admin
+permissions:
+  itemlog.admin:
+    description: Access admin panel
+    default: op
