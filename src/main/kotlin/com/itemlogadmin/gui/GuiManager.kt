@@ -67,24 +67,13 @@ class GuiManager(
         })
     }
 
-    fun openEventList(player: Player, targetId: UUID?, page: Int) {
-        state[player.uniqueId] = GuiState.EventList(targetId, page, null)
-        val inv = Bukkit.createInventory(null, 54, "Events — ${targetId?.toString()?.take(8) ?: "All"} p$page")
-        plugin.server.scheduler.runTaskAsynchronously(plugin, Runnable {
-            val (events, total) = queryService.getEvents(targetId, null, page, 45)
-            plugin.server.scheduler.runTask(plugin, Runnable {
-                for ((i, ev) in events.withIndex()) {
-                    val mat = try { Material.valueOf(ev.material ?: "STONE") } catch (_: Exception) { Material.PAPER }
-                    val icon = ItemStack(mat)
-                    val meta = icon.itemMeta!!
-                    meta.setDisplayName("§e${ev.type} §7${ev.eventId.toString().take(8)}")
-                    meta.setLore(listOf("§7${java.time.Instant.ofEpochMilli(ev.timestamp)}", "§7${ev.world} ${ev.x.toInt()},${ev.y.toInt()},${ev.z.toInt()}", "§7Click for details"))
-                    icon.itemMeta = meta
-                    inv.setItem(i, icon)
-                }
-                player.openInventory(inv)
-            })
-        })
+    private val eventListView = EventListView(queryService)
+
+    fun openEventList(player: Player, targetId: UUID?, page: Int, filterType: String? = null) {
+        state[player.uniqueId] = GuiState.EventList(targetId, page, filterType)
+        eventListView.open(player, targetId, page, filterType) { inv ->
+            player.openInventory(inv)
+        }
     }
 
     @EventHandler
@@ -114,7 +103,28 @@ class GuiManager(
                 openEventList(player, offline.uniqueId, 0)
             }
         } else if (s is GuiState.EventList) {
-            // TODO: handle event click -> EventDetails
+            val item = e.currentItem ?: return
+            when (slot) {
+                45 -> {
+                    // cycle filter
+                    val next = when (s.filter) {
+                        null -> "PICKUP"
+                        "PICKUP" -> "DROP"
+                        "DROP" -> "DEATH_DROP"
+                        "DEATH_DROP" -> null
+                        else -> null
+                    }
+                    openEventList(player, s.playerId, 0, next)
+                }
+                48 -> if (s.page > 0) openEventList(player, s.playerId, s.page - 1, s.filter)
+                50 -> openEventList(player, s.playerId, s.page + 1, s.filter)
+                else -> {
+                    if (item.type == Material.AIR) return
+                    // TODO: open EventDetails for clicked event (need to map slot to eventId)
+                    // For Stage 3, just show message
+                    player.sendMessage("§7Event details — Stage 4")
+                }
+            }
         }
     }
 }
