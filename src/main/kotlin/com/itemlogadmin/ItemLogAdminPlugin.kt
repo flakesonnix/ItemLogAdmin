@@ -24,7 +24,7 @@ class ItemLogAdminPlugin : JavaPlugin() {
         playerRepo = PlayerRepository(dataSource)
         queryService = QueryService(queryRepo)
         restoreService = RestoreService(this, dataSource, queryRepo)
-        guiManager = GuiManager(this, queryService, restoreService, playerRepo)
+        guiManager = GuiManager(this, queryService, restoreService, playerRepo, queryRepo)
 
         getCommand("itemlog")?.setExecutor { sender, _, _, args ->
             if (!sender.hasPermission("itemlog.admin")) {

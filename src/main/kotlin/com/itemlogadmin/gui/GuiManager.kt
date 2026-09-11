@@ -1,5 +1,7 @@
 package com.itemlogadmin.gui
 
+import com.itemlogadmin.gui.EventDetailsView
+import com.itemlogadmin.gui.EventListView
 import com.itemlogadmin.model.GuiState
 import com.itemlogadmin.repository.PlayerRepository
 import com.itemlogadmin.service.QueryService
@@ -21,10 +23,12 @@ class GuiManager(
     private val plugin: JavaPlugin,
     private val queryService: QueryService,
     private val restoreService: RestoreService,
-    private val playerRepo: PlayerRepository
+    private val playerRepo: PlayerRepository,
+    private val queryRepo: com.itemlogadmin.repository.ItemLogQueryRepository
 ) : Listener {
 
     private val state = ConcurrentHashMap<UUID, GuiState>()
+    private val eventDetailsView = EventDetailsView(queryRepo)
 
     fun openPlayerList(player: Player, page: Int, query: String?) {
         state[player.uniqueId] = GuiState.PlayerList(page, query)
@@ -120,10 +124,24 @@ class GuiManager(
                 50 -> openEventList(player, s.playerId, s.page + 1, s.filter)
                 else -> {
                     if (item.type == Material.AIR) return
-                    // TODO: open EventDetails for clicked event (need to map slot to eventId)
-                    // For Stage 3, just show message
-                    player.sendMessage("§7Event details — Stage 4")
+                    // Stage 4: open details — need eventId from slot
+                    // For now, try to parse from displayName
+                    val meta = item.itemMeta ?: return
+                    val name = meta.displayName ?: return
+                    val idStr = name.substringAfter("§7").trim().take(8)
+                    // In real Stage 4, we store mapping slot -> eventId
+                    player.sendMessage("§7Opening details for $idStr — Stage 4")
+                    // TODO: eventDetailsView.open(player, eventId)
                 }
+            }
+        } else if (s is GuiState.EventDetails) {
+            val item = e.currentItem ?: return
+            if (slot == 29) {
+                // Restore button
+                player.sendMessage("§7Restore confirmation — Stage 5")
+            } else if (slot == 49) {
+                // Back
+                openEventList(player, null, 0)
             }
         }
     }
