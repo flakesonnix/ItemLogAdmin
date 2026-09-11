@@ -8,17 +8,26 @@ import javax.sql.DataSource
 class ItemLogQueryRepository(private val ds: DataSource) {
 
     fun findEvents(playerId: UUID?, type: String?, limit: Int, offset: Int): List<ItemEventView> {
-        val sql = StringBuilder("SELECT event_id, event_type, timestamp, player_uuid, world, x, y, z, material, before_json, after_json, source FROM item_events WHERE 1=1")
+        val sql = StringBuilder(
+            """
+            SELECT e.event_id, e.event_type, e.timestamp, e.player_uuid, e.world, e.x, e.y, e.z, e.material,
+                   e.before_json, e.after_json, e.source,
+                   CASE WHEN r.event_id IS NOT NULL THEN 1 ELSE 0 END as is_restored
+            FROM item_events e
+            LEFT JOIN restorations r ON e.event_id = r.event_id
+            WHERE 1=1
+            """.trimIndent(),
+        )
         val params = mutableListOf<Any?>()
         if (playerId != null) {
-            sql.append(" AND player_uuid = ?")
+            sql.append(" AND e.player_uuid = ?")
             params.add(uuidToBytes(playerId))
         }
         if (type != null) {
-            sql.append(" AND event_type = ?")
+            sql.append(" AND e.event_type = ?")
             params.add(type)
         }
-        sql.append(" ORDER BY timestamp DESC LIMIT ? OFFSET ?")
+        sql.append(" ORDER BY e.timestamp DESC LIMIT ? OFFSET ?")
         params.add(limit)
         params.add(offset)
         ds.connection.use { c ->
@@ -51,7 +60,7 @@ class ItemLogQueryRepository(private val ds: DataSource) {
                                 source = rs.getString("source"),
                                 hasBefore = rs.getString("before_json") != null,
                                 hasAfter = rs.getString("after_json") != null,
-                                restored = false, // TODO: check restorations table
+                                restored = rs.getInt("is_restored") == 1,
                             ),
                         )
                     }

@@ -18,6 +18,8 @@ dependencies {
     implementation("com.mysql:mysql-connector-j:9.2.0")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.11.3")
+    testImplementation("io.mockk:mockk:1.13.13")
+    testImplementation("io.papermc.paper:paper-api:$paperVersion")
 }
 java { toolchain.languageVersion.set(JavaLanguageVersion.of(21)) }
 kotlin { jvmToolchain(21) }
