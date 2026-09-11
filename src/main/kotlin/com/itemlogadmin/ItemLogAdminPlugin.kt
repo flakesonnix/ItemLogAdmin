@@ -3,6 +3,7 @@ package com.itemlogadmin
 import com.itemlogadmin.db.DataSourceProvider
 import com.itemlogadmin.gui.GuiManager
 import com.itemlogadmin.repository.ItemLogQueryRepository
+import com.itemlogadmin.repository.PlayerRepository
 import com.itemlogadmin.service.QueryService
 import com.itemlogadmin.service.RestoreService
 import org.bukkit.plugin.java.JavaPlugin
@@ -13,15 +14,17 @@ class ItemLogAdminPlugin : JavaPlugin() {
     lateinit var queryService: QueryService
     lateinit var restoreService: RestoreService
     lateinit var guiManager: GuiManager
+    lateinit var playerRepo: PlayerRepository
 
     override fun onEnable() {
         saveDefaultConfig()
         val provider = DataSourceProvider(this)
         dataSource = provider.getDataSource()
         val queryRepo = ItemLogQueryRepository(dataSource)
+        playerRepo = PlayerRepository(dataSource)
         queryService = QueryService(queryRepo)
         restoreService = RestoreService(this, dataSource, queryRepo)
-        guiManager = GuiManager(this, queryService, restoreService)
+        guiManager = GuiManager(this, queryService, restoreService, playerRepo)
 
         getCommand("itemlog")?.setExecutor { sender, _, _, args ->
             if (!sender.hasPermission("itemlog.admin")) {
