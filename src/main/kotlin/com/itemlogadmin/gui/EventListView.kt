@@ -12,13 +12,38 @@ class EventListView(
     private val cache: java.util.concurrent.ConcurrentHashMap<UUID, List<com.itemlogadmin.model.ItemEventView>>? = null,
 ) {
     fun open(player: Player, targetId: UUID?, page: Int, filterType: String?, onOpen: (org.bukkit.inventory.Inventory) -> Unit) {
-        val title = "Events — ${targetId?.toString()?.take(8) ?: "All"} p${page + 1}" + if (filterType != null) " [$filterType]" else ""
+        val targetName = targetId?.let { id ->
+            Bukkit.getOfflinePlayer(id).name?.take(12) ?: id.toString().take(8)
+        } ?: "All"
+        val title = "§8Events §7» §e$targetName §8[§7p${page + 1}§8]${if (filterType != null) " §6$filterType" else ""}"
         val inv = Bukkit.createInventory(null, 54, title)
-        // filter paper at slot 45
+
+        // Add decorative glass panes
+        val glassPane = ItemStack(Material.GRAY_STAINED_GLASS_PANE)
+        val glassMeta = glassPane.itemMeta!!
+        glassMeta.setDisplayName(" ")
+        glassPane.itemMeta = glassMeta
+        for (slot in 45..53) {
+            inv.setItem(slot, glassPane)
+        }
+
+        // Filter hopper at slot 45
         val filterItem = ItemStack(Material.HOPPER)
         val fm = filterItem.itemMeta!!
-        fm.setDisplayName("§bFilter: ${filterType ?: "ALL"}")
-        fm.setLore(listOf("§7Click to cycle", "§7Types: PICKUP, DROP, DEATH_DROP, etc."))
+        fm.setDisplayName("§b⚙ Filter: §f${filterType ?: "ALL"}")
+        fm.setLore(
+            listOf(
+                "§7Click to cycle through types",
+                "",
+                "§7Available filters:",
+                "§8• §fALL",
+                "§8• §ePICKUP",
+                "§8• §cDROP",
+                "§8• §4DEATH_DROP",
+                "",
+                "§eClick to change filter",
+            ),
+        )
         filterItem.itemMeta = fm
         inv.setItem(45, filterItem)
 
@@ -39,13 +64,26 @@ class EventListView(
                             }
                             val icon = ItemStack(mat)
                             val meta = icon.itemMeta!!
-                            meta.setDisplayName("§e${ev.type} §7${ev.eventId.toString().take(8)}")
+
+                            // Better color coding based on event type
+                            val typeColor = when (ev.type) {
+                                "PICKUP" -> "§a"
+                                "DROP" -> "§e"
+                                "DEATH_DROP" -> "§c"
+                                "CRAFT" -> "§b"
+                                "SMELT" -> "§6"
+                                else -> "§7"
+                            }
+
+                            meta.setDisplayName("$typeColor${ev.type} §8[§7${ev.eventId.toString().take(8)}§8]")
                             meta.setLore(
                                 listOf(
-                                    "§7${java.time.Instant.ofEpochMilli(ev.timestamp)}",
-                                    "§7${ev.world} ${ev.x.toInt()},${ev.y.toInt()},${ev.z.toInt()}",
-                                    "§7Material: ${ev.material}",
-                                    "§7Click for details",
+                                    "§7🕒 ${java.time.Instant.ofEpochMilli(ev.timestamp)}",
+                                    "§7🌍 ${ev.world} §8(§f${ev.x.toInt()}§7,§f${ev.y.toInt()}§7,§f${ev.z.toInt()}§8)",
+                                    "§7📦 Material: §f${ev.material}",
+                                    if (ev.restored) "§c✗ Already restored" else "§a✓ Can be restored",
+                                    "",
+                                    "§e▶ Click for details",
                                 ),
                             )
                             icon.itemMeta = meta
@@ -55,8 +93,8 @@ class EventListView(
                         if (page > 0) {
                             val prev = ItemStack(Material.ARROW)
                             prev.itemMeta?.let {
-                                it.setDisplayName("§aPrev")
-                                it.setLore(listOf("§7Page $page"))
+                                it.setDisplayName("§a⬅ Previous Page")
+                                it.setLore(listOf("§7Page §f$page", "", "§eClick to go back"))
                                 prev.itemMeta = it
                             }
                             inv.setItem(48, prev)
@@ -64,17 +102,27 @@ class EventListView(
                         if ((page + 1) * 45 < total) {
                             val next = ItemStack(Material.ARROW)
                             next.itemMeta?.let {
-                                it.setDisplayName("§aNext")
-                                it.setLore(listOf("§7Page ${page + 2}"))
+                                it.setDisplayName("§aNext Page ➡")
+                                it.setLore(listOf("§7Page §f${page + 2}", "", "§eClick to continue"))
                                 next.itemMeta = it
                             }
                             inv.setItem(50, next)
                         }
-                        // time filter paper at 46
+
+                        // Page info
+                        val pageInfo = ItemStack(Material.BOOK)
+                        pageInfo.itemMeta?.let {
+                            it.setDisplayName("§e📖 Page ${page + 1}")
+                            it.setLore(listOf("§7Total events: §f$total", "§7Showing: §f${events.size}", "§7Pages: §f${(total + 44) / 45}"))
+                            pageInfo.itemMeta = it
+                        }
+                        inv.setItem(49, pageInfo)
+
+                        // time filter clock at 46
                         val timeItem = ItemStack(Material.CLOCK)
                         val tm = timeItem.itemMeta!!
-                        tm.setDisplayName("§bTime filter")
-                        tm.setLore(listOf("§7Not yet implemented", "§7Will filter by from/to"))
+                        tm.setDisplayName("§b⏰ Time Filter")
+                        tm.setLore(listOf("§7Filter by time range", "§8Coming soon...", "", "§7Will allow filtering", "§7by from/to timestamps"))
                         timeItem.itemMeta = tm
                         inv.setItem(46, timeItem)
                         onOpen(inv)

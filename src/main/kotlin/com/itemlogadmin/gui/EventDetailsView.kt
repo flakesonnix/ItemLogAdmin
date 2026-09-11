@@ -13,10 +13,19 @@ class EventDetailsView(
 ) {
     fun open(player: Player, eventId: UUID) {
         if (!player.hasPermission("itemlog.admin") && !player.hasPermission("itemlog.view")) {
-            player.sendMessage("§cNo permission: itemlog.view")
+            player.sendMessage("§c✗ No permission: §7itemlog.view")
             return
         }
-        val inv = Bukkit.createInventory(null, 54, "Event ${eventId.toString().take(8)}")
+        val inv = Bukkit.createInventory(null, 54, "§8Event §7» §e${eventId.toString().take(8)}")
+
+        // Add decorative glass panes
+        val glassPane = ItemStack(Material.GRAY_STAINED_GLASS_PANE)
+        val glassMeta = glassPane.itemMeta!!
+        glassMeta.setDisplayName(" ")
+        glassPane.itemMeta = glassMeta
+        for (slot in listOf(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 17, 18, 26, 27, 35, 36, 44, 45, 46, 47, 48, 50, 51, 52, 53)) {
+            inv.setItem(slot, glassPane)
+        }
         Bukkit.getScheduler().runTaskAsynchronously(
             Bukkit.getPluginManager().getPlugin("ItemLogAdmin")!!,
             Runnable {
@@ -63,20 +72,33 @@ class EventDetailsView(
                     Bukkit.getPluginManager().getPlugin("ItemLogAdmin")!!,
                     Runnable {
                         if (hasFailed) {
-                            player.sendMessage("§cEvent not found or DB error")
+                            player.sendMessage("§c✗ Event not found or database error")
                             return@Runnable
                         }
                         val json = beforeJson ?: afterJson
                         val preview = ItemPreview.fromJsonOrFallback(json, material)
                         val pMeta = preview.itemMeta!!
-                        pMeta.setDisplayName("§e${type ?: "UNKNOWN"} §7${eventId.toString().take(8)}")
+
+                        val typeColor = when (type) {
+                            "PICKUP" -> "§a"
+                            "DROP" -> "§e"
+                            "DEATH_DROP" -> "§c"
+                            "CRAFT" -> "§b"
+                            "SMELT" -> "§6"
+                            else -> "§7"
+                        }
+
+                        pMeta.setDisplayName("$typeColor⚑ ${type ?: "UNKNOWN"}")
                         pMeta.setLore(
                             listOf(
-                                "§7Time: ${timestamp?.let { java.time.Instant.ofEpochMilli(it) } ?: "unknown"}",
-                                "§7World: ${world ?: "?"}",
-                                "§7Material: ${material ?: "?"}",
-                                "§7Restored: ${if (restored) "§cYes" else "§aNo"}",
-                                "§7Click restore to confirm",
+                                "§8━━━━━━━━━━━━━━━━━━━━",
+                                "§7📝 Event ID: §f${eventId.toString().take(16)}...",
+                                "§7🕒 Time: §f${timestamp?.let { java.time.Instant.ofEpochMilli(it) } ?: "unknown"}",
+                                "§7🌍 World: §f${world ?: "?"}",
+                                "§7📦 Material: §f${material ?: "?"}",
+                                "",
+                                if (restored) "§c✗ Already Restored" else "§a✓ Available for Restore",
+                                "§8━━━━━━━━━━━━━━━━━━━━",
                             ),
                         )
                         preview.itemMeta = pMeta
@@ -85,16 +107,23 @@ class EventDetailsView(
                         if (restored) {
                             val disabled = ItemStack(Material.BARRIER)
                             disabled.itemMeta?.let {
-                                it.setDisplayName("§cAlready restored")
-                                it.setLore(listOf("§7Already restored"))
+                                it.setDisplayName("§c✗ Already Restored")
+                                it.setLore(listOf("§7This event has already", "§7been restored previously", "", "§8Cannot restore again"))
                                 disabled.itemMeta = it
                             }
                             inv.setItem(29, disabled)
                         } else {
                             val restore = ItemStack(Material.LIME_CONCRETE)
                             restore.itemMeta?.let {
-                                it.setDisplayName("§aRestore")
-                                it.setLore(listOf("§7Restore item to inventory", "§7Will ask for confirmation"))
+                                it.setDisplayName("§a✓ Restore Item")
+                                it.setLore(
+                                    listOf(
+                                        "§7Restore this item to",
+                                        "§7the target player's inventory",
+                                        "",
+                                        "§eClick for confirmation",
+                                    ),
+                                )
                                 restore.itemMeta = it
                             }
                             inv.setItem(29, restore)
@@ -102,7 +131,8 @@ class EventDetailsView(
 
                         val back = ItemStack(Material.ARROW)
                         back.itemMeta?.let {
-                            it.setDisplayName("§7Back")
+                            it.setDisplayName("§7⬅ Back to List")
+                            it.setLore(listOf("§8Return to events"))
                             back.itemMeta = it
                         }
                         inv.setItem(49, back)

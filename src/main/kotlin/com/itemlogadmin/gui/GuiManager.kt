@@ -34,7 +34,7 @@ class GuiManager(
 
     fun openPlayerList(player: Player, page: Int, query: String?) {
         state[player.uniqueId] = GuiState.PlayerList(page, query)
-        val inv = Bukkit.createInventory(null, 54, "ItemLog — Players" + if (query != null) " [$query]" else "")
+        val inv = Bukkit.createInventory(null, 54, "§8ItemLog §7» §ePlayers" + if (query != null) " §8[§6$query§8]" else "")
         plugin.server.scheduler.runTaskAsynchronously(
             plugin,
             Runnable {
@@ -50,23 +50,43 @@ class GuiManager(
                             val head = ItemStack(Material.PLAYER_HEAD)
                             val meta = head.itemMeta as SkullMeta
                             meta.setOwningPlayer(offline)
-                            meta.setDisplayName("§e$name")
-                            meta.setLore(listOf("§7${info.uuid}", "§7Events: ${info.eventCount}", "§7Last: ${java.time.Instant.ofEpochMilli(info.lastSeen)}", "§aClick to view"))
+                            meta.setDisplayName("§6⚑ §e$name")
+                            meta.setLore(
+                                listOf(
+                                    "§8${info.uuid.toString().take(16)}...",
+                                    "",
+                                    "§7📋 Events: §f${info.eventCount}",
+                                    "§7🕒 Last seen: §f${java.time.Instant.ofEpochMilli(info.lastSeen)}",
+                                    "",
+                                    "§a▶ Click to view events",
+                                ),
+                            )
                             head.itemMeta = meta
                             inv.setItem(i, head)
                         }
-                        // search paper at slot 45, next/prev at 53/45
+                        // search name_tag at slot 45, prev/next arrows
                         val search = ItemStack(Material.NAME_TAG)
                         val sm = search.itemMeta!!
-                        sm.setDisplayName("§bSearch: ${query ?: ""}")
-                        sm.setLore(listOf("§7Anvil to search", "§7Query: name or UUID prefix"))
+                        sm.setDisplayName("§b🔍 Search${if (query != null) ": §f$query" else ""}")
+                        sm.setLore(listOf("§7Type §f/itemlog <name|uuid>", "§7to search for players", "", "§8Currently: §7${if (query != null) query else "No filter"}"))
                         search.itemMeta = sm
                         inv.setItem(45, search)
+                        // Add glass panes as decoration
+                        val glassPane = ItemStack(Material.GRAY_STAINED_GLASS_PANE)
+                        val glassMeta = glassPane.itemMeta!!
+                        glassMeta.setDisplayName(" ")
+                        glassPane.itemMeta = glassMeta
+                        for (slot in 45..53) {
+                            if (inv.getItem(slot) == null) {
+                                inv.setItem(slot, glassPane)
+                            }
+                        }
+
                         if (page > 0) {
                             val prev = ItemStack(Material.ARROW)
                             prev.itemMeta?.let {
-                                it.setDisplayName("§aPrev")
-                                it.setLore(listOf("§7Page $page"))
+                                it.setDisplayName("§a⬅ Previous Page")
+                                it.setLore(listOf("§7Page §f$page", "", "§eClick to go back"))
                                 prev.itemMeta = it
                             }
                             inv.setItem(48, prev)
@@ -74,12 +94,30 @@ class GuiManager(
                         if ((page + 1) * 45 < total) {
                             val next = ItemStack(Material.ARROW)
                             next.itemMeta?.let {
-                                it.setDisplayName("§aNext")
-                                it.setLore(listOf("§7Page ${page + 2}"))
+                                it.setDisplayName("§aNext Page ➡")
+                                it.setLore(listOf("§7Page §f${page + 2}", "", "§eClick to continue"))
                                 next.itemMeta = it
                             }
                             inv.setItem(50, next)
                         }
+
+                        // Add page indicator
+                        val pageInfo = ItemStack(Material.BOOK)
+                        pageInfo.itemMeta?.let {
+                            it.setDisplayName("§e📖 Page Info")
+                            it.setLore(listOf("§7Current: §f${page + 1}", "§7Total players: §f$total", "§7Pages: §f${(total + 44) / 45}"))
+                            pageInfo.itemMeta = it
+                        }
+                        inv.setItem(49, pageInfo)
+
+                        // Close button
+                        val close = ItemStack(Material.BARRIER)
+                        close.itemMeta?.let {
+                            it.setDisplayName("§c✗ Close")
+                            it.setLore(listOf("§7Close this menu"))
+                            close.itemMeta = it
+                        }
+                        inv.setItem(53, close)
                         player.openInventory(inv)
                     },
                 )
@@ -104,9 +142,15 @@ class GuiManager(
         val slot = e.rawSlot
         if (s is GuiState.PlayerList) {
             val item = e.currentItem ?: return
+            if (slot == 53) {
+                // Close
+                player.closeInventory()
+                state.remove(player.uniqueId)
+                return
+            }
             if (slot == 45) {
                 // TODO: open anvil GUI for search
-                player.sendMessage("§7Type in chat: /itemlog <name|uuid prefix>")
+                player.sendMessage("§7Type in chat: §b/itemlog <name|uuid prefix>")
                 return
             }
             if (slot == 48 && s.page > 0) {
@@ -168,11 +212,11 @@ class GuiManager(
                     // Confirm
                     val res = restoreService.restore(s.eventId, player, player)
                     when (res) {
-                        is RestoreService.Result.Success -> player.sendMessage("§aRestored ${res.restorationId.toString().take(8)}")
-                        is RestoreService.Result.AlreadyRestored -> player.sendMessage("§cAlready restored by ${res.by}")
-                        is RestoreService.Result.NotFound -> player.sendMessage("§cNot found")
-                        is RestoreService.Result.Failed -> player.sendMessage("§cFailed: ${res.reason}")
-                        is RestoreService.Result.NoPermission -> player.sendMessage("§cNo permission: ${res.needed}")
+                        is RestoreService.Result.Success -> player.sendMessage("§a✓ Restored successfully §8[§7${res.restorationId.toString().take(8)}§8]")
+                        is RestoreService.Result.AlreadyRestored -> player.sendMessage("§c✗ Already restored by §f${res.by}")
+                        is RestoreService.Result.NotFound -> player.sendMessage("§c✗ Event not found")
+                        is RestoreService.Result.Failed -> player.sendMessage("§c✗ Failed: §7${res.reason}")
+                        is RestoreService.Result.NoPermission -> player.sendMessage("§c✗ No permission: §7${res.needed}")
                     }
                     player.closeInventory()
                     state.remove(player.uniqueId)
