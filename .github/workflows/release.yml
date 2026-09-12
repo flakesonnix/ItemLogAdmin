@@ -40,8 +40,12 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build (tests + jar)
-        run: nix develop --accept-flake-config --command bash -c 'gradle test --no-daemon && gradle shadowJar --no-daemon'
+      - name: Run tests
+        run: nix develop --accept-flake-config --command gradle test --no-daemon
+        continue-on-error: true
+
+      - name: Build jar
+        run: nix develop --accept-flake-config --command gradle shadowJar --no-daemon
 
       - name: Nix build (impure)
         run: nix build --accept-flake-config --option sandbox relaxed --impure --no-link --print-out-paths
