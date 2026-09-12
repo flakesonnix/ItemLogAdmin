@@ -14,6 +14,8 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.inventory.Inventory
+import org.bukkit.inventory.InventoryView
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
@@ -69,21 +71,21 @@ class GuiManagerTest {
     fun `openPlayerList creates inventory with correct title`() {
         val player = mockk<Player>(relaxed = true)
         every { player.uniqueId } returns UUID.randomUUID()
-        every { player.openInventory(any()) } returns mockk(relaxed = true)
+        every { player.openInventory(any<Inventory>()) } returns mockk<InventoryView>(relaxed = true)
         
         every { playerRepo.recentlyActive(any(), any(), any()) } returns emptyList()
         every { playerRepo.countDistinct(any()) } returns 0L
         
         guiManager.openPlayerList(player, 0, null)
         
-        verify { Bukkit.createInventory(null, 54, match { it.contains("ItemLog") && it.contains("Players") }) }
+        verify { Bukkit.createInventory(null, 54, match<String> { it.contains("ItemLog") && it.contains("Players") }) }
     }
 
     @Test
     fun `openPlayerList with query filters players`() {
         val player = mockk<Player>(relaxed = true)
         every { player.uniqueId } returns UUID.randomUUID()
-        every { player.openInventory(any()) } returns mockk(relaxed = true)
+        every { player.openInventory(any<Inventory>()) } returns mockk<InventoryView>(relaxed = true)
         
         val query = "Steve"
         every { playerRepo.recentlyActive(any(), any(), query) } returns emptyList()
@@ -92,14 +94,14 @@ class GuiManagerTest {
         guiManager.openPlayerList(player, 0, query)
         
         verify { playerRepo.recentlyActive(45, 0, query) }
-        verify { Bukkit.createInventory(null, 54, match { it.contains(query) }) }
+        verify { Bukkit.createInventory(null, 54, match<String> { it.contains(query) }) }
     }
 
     @Test
     fun `openPlayerList calculates correct offset for pagination`() {
         val player = mockk<Player>(relaxed = true)
         every { player.uniqueId } returns UUID.randomUUID()
-        every { player.openInventory(any()) } returns mockk(relaxed = true)
+        every { player.openInventory(any<Inventory>()) } returns mockk<InventoryView>(relaxed = true)
         
         every { playerRepo.recentlyActive(any(), any(), any()) } returns emptyList()
         every { playerRepo.countDistinct(any()) } returns 0L
@@ -116,7 +118,7 @@ class GuiManagerTest {
         val targetId = UUID.randomUUID()
         
         every { player.uniqueId } returns playerId
-        every { player.openInventory(any()) } returns mockk(relaxed = true)
+        every { player.openInventory(any<Inventory>()) } returns mockk<InventoryView>(relaxed = true)
         
         every { queryService.getEvents(any(), any(), any(), any(), any(), any(), any()) } returns (emptyList<ItemEventView>() to 0L)
         
@@ -141,7 +143,7 @@ class GuiManagerTest {
         val playerId = UUID.randomUUID()
         every { player.uniqueId } returns playerId
         every { player.closeInventory() } just Runs
-        every { player.openInventory(any()) } returns mockk(relaxed = true)
+        every { player.openInventory(any<Inventory>()) } returns mockk<InventoryView>(relaxed = true)
         
         every { playerRepo.recentlyActive(any(), any(), any()) } returns emptyList()
         every { playerRepo.countDistinct(any()) } returns 0L
@@ -165,7 +167,7 @@ class GuiManagerTest {
         val player = mockk<Player>(relaxed = true)
         val playerId = UUID.randomUUID()
         every { player.uniqueId } returns playerId
-        every { player.openInventory(any()) } returns mockk(relaxed = true)
+        every { player.openInventory(any<Inventory>()) } returns mockk<InventoryView>(relaxed = true)
         
         every { playerRepo.recentlyActive(any(), any(), any()) } returns emptyList()
         every { playerRepo.countDistinct(any()) } returns 100L // More than one page
