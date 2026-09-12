@@ -48,7 +48,7 @@ class RestoreService(
             }
         }
         // fetch event
-        val eventOpt = queryRepo.findEvents(null, null, 0, 1).find { it.eventId == eventId }
+        val eventOpt = queryRepo.findEvents(null, null, null, null, null, 1, 0).find { it.eventId == eventId }
             ?: ds.connection.use { c ->
                 c.prepareStatement("SELECT before_json, after_json, player_uuid FROM item_events WHERE event_id = ?").use { ps ->
                     ps.setBytes(1, uuidToBytes(eventId))
@@ -78,19 +78,32 @@ class RestoreService(
         }
         if (itemJson == null) return Result.Failed("no snapshot")
         val actualTarget = target ?: targetUuid?.let { Bukkit.getPlayer(it) } ?: Bukkit.getPlayer(admin.uniqueId) ?: admin
-        // TODO: deserialize itemJson via ItemSerializer (shared) — for now, give paper with lore
+        
+        // Deserialize itemJson via ItemSerializer from ItemLog plugin
         val toGive = try {
-            // Try to deserialize via ItemLog's ItemSerializer if available, else placeholder
-            val serializerClass = Class.forName("com.itemlog.serialization.ItemSerializer")
-            val serializer = serializerClass.getDeclaredConstructor().newInstance()
-            val method = serializerClass.getMethod("deserialize", String::class.java)
-            method.invoke(serializer, itemJson) as ItemStack? ?: ItemStack(org.bukkit.Material.PAPER)
-        } catch (_: Exception) {
-            val placeholder = ItemStack(org.bukkit.Material.PAPER)
-            val meta = placeholder.itemMeta!!
-            meta.setDisplayName("§eRestored ${eventId.toString().take(8)}")
-            placeholder.itemMeta = meta
-            placeholder
+            val itemLogPlugin = Bukkit.getPluginManager().getPlugin("ItemLog")
+            if (itemLogPlugin != null) {
+                val serializerClass = Class.forName("com.itemlog.serialization.ItemSerializer")
+                val serializer = serializerClass.getDeclaredConstructor().newInstance()
+                val method = serializerClass.getMethod("deserialize", String::class.java)
+                method.invoke(serializer, itemJson) as ItemStack? ?: ItemStack(org.bukkit.Material.PAPER)
+            } else {
+                // Fallback if ItemLog not available
+                ItemStack(org.bukkit.Material.PAPER).apply {
+                    val meta = itemMeta!!
+                    meta.setDisplayName("§eRestored Item ${eventId.toString().take(8)}")
+                    meta.setLore(listOf("§7ItemLog plugin not loaded", "§7Cannot deserialize item data"))
+                    itemMeta = meta
+                }
+            }
+        } catch (e: Exception) {
+            plugin.logger.warning("Failed to deserialize item ${eventId}: ${e.message}")
+            ItemStack(org.bukkit.Material.PAPER).apply {
+                val meta = itemMeta!!
+                meta.setDisplayName("§cFailed to Restore ${eventId.toString().take(8)}")
+                meta.setLore(listOf("§7Deserialization error", "§7${e.message}"))
+                itemMeta = meta
+            }
         }
 
         // Must run on main thread for inventory

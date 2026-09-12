@@ -127,9 +127,9 @@ class GuiManager(
 
     private val eventListView = EventListView(queryService, eventCache)
 
-    fun openEventList(player: Player, targetId: UUID?, page: Int, filterType: String? = null) {
-        state[player.uniqueId] = GuiState.EventList(targetId, page, filterType)
-        eventListView.open(player, targetId, page, filterType) { inv ->
+    fun openEventList(player: Player, targetId: UUID?, page: Int, filterType: String? = null, materialFilter: String? = null, timeFilter: GuiState.TimeFilter? = null) {
+        state[player.uniqueId] = GuiState.EventList(targetId, page, filterType, materialFilter, timeFilter)
+        eventListView.open(player, targetId, page, filterType, materialFilter, timeFilter) { inv ->
             player.openInventory(inv)
         }
     }
@@ -170,18 +170,31 @@ class GuiManager(
             val item = e.currentItem ?: return
             when (slot) {
                 45 -> {
-                    // cycle filter
+                    // cycle event type filter
                     val next = when (s.filter) {
                         null -> "PICKUP"
                         "PICKUP" -> "DROP"
                         "DROP" -> "DEATH_DROP"
-                        "DEATH_DROP" -> null
+                        "DEATH_DROP" -> "CRAFT_RESULT"
+                        "CRAFT_RESULT" -> "SMELT_RESULT"
+                        "SMELT_RESULT" -> null
                         else -> null
                     }
-                    openEventList(player, s.playerId, 0, next)
+                    openEventList(player, s.playerId, 0, next, s.materialFilter, s.timeFilter)
                 }
-                48 -> if (s.page > 0) openEventList(player, s.playerId, s.page - 1, s.filter)
-                50 -> openEventList(player, s.playerId, s.page + 1, s.filter)
+                46 -> {
+                    // cycle time filter
+                    val filters = GuiState.TimeFilter.values()
+                    val currentIndex = s.timeFilter?.ordinal ?: -1
+                    val nextFilter = if (currentIndex < filters.size - 1) filters[currentIndex + 1] else null
+                    openEventList(player, s.playerId, 0, s.filter, s.materialFilter, nextFilter)
+                }
+                47 -> {
+                    // clear material filter
+                    openEventList(player, s.playerId, 0, s.filter, null, s.timeFilter)
+                }
+                48 -> if (s.page > 0) openEventList(player, s.playerId, s.page - 1, s.filter, s.materialFilter, s.timeFilter)
+                50 -> openEventList(player, s.playerId, s.page + 1, s.filter, s.materialFilter, s.timeFilter)
                 else -> {
                     if (item.type == Material.AIR) return
                     val events = eventCache[player.uniqueId] ?: return

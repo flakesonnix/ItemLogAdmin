@@ -6,11 +6,51 @@ author: you
 description: Admin GUI for ItemLog — investigate & restore items.
 commands:
   itemlog:
-    description: Open ItemLog admin panel
-    usage: /itemlog [player]
+    description: ItemLog admin commands - manage, query, restore item events
+    usage: |
+      /itemlog - Open GUI
+      /itemlog player <name> - View player events
+      /itemlog search <query> - Search players
+      /itemlog stats [player] - Show statistics
+      /itemlog export [player] [days] - Export to CSV
+      /itemlog restore <eventId> - Restore event
+      /itemlog purge <days> - Delete old events
     permission: itemlog.admin
     aliases: [il, itemlogadmin]
 permissions:
   itemlog.admin:
-    description: Access admin panel
+    description: Full admin access (includes all sub-permissions)
+    default: op
+    children:
+      itemlog.view: true
+      itemlog.view.own: true
+      itemlog.view.others: true
+      itemlog.restore: true
+      itemlog.restore.own: true
+      itemlog.restore.others: true
+      itemlog.admin.purge: true
+      itemlog.admin.export: true
+  itemlog.view:
+    description: View event logs in GUI
+    default: op
+  itemlog.view.own:
+    description: View own item events
+    default: true
+  itemlog.view.others:
+    description: View other players' events
+    default: op
+  itemlog.restore:
+    description: Restore items from events
+    default: op
+  itemlog.restore.own:
+    description: Restore own items
+    default: op
+  itemlog.restore.others:
+    description: Restore items to other players
+    default: op
+  itemlog.admin.purge:
+    description: Delete old events from database
+    default: op
+  itemlog.admin.export:
+    description: Export events to CSV files
     default: op

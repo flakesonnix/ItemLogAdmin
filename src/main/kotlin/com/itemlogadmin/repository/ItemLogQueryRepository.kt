@@ -7,7 +7,15 @@ import javax.sql.DataSource
 
 class ItemLogQueryRepository(private val ds: DataSource) {
 
-    fun findEvents(playerId: UUID?, type: String?, limit: Int, offset: Int): List<ItemEventView> {
+    fun findEvents(
+        playerId: UUID?,
+        type: String?,
+        material: String? = null,
+        fromTime: Long? = null,
+        toTime: Long? = null,
+        limit: Int,
+        offset: Int,
+    ): List<ItemEventView> {
         val sql = StringBuilder(
             """
             SELECT e.event_id, e.event_type, e.timestamp, e.player_uuid, e.world, e.x, e.y, e.z, e.material,
@@ -27,6 +35,18 @@ class ItemLogQueryRepository(private val ds: DataSource) {
             sql.append(" AND e.event_type = ?")
             params.add(type)
         }
+        if (material != null) {
+            sql.append(" AND e.material = ?")
+            params.add(material)
+        }
+        if (fromTime != null) {
+            sql.append(" AND e.timestamp >= ?")
+            params.add(fromTime)
+        }
+        if (toTime != null) {
+            sql.append(" AND e.timestamp <= ?")
+            params.add(toTime)
+        }
         sql.append(" ORDER BY e.timestamp DESC LIMIT ? OFFSET ?")
         params.add(limit)
         params.add(offset)
@@ -36,6 +56,7 @@ class ItemLogQueryRepository(private val ds: DataSource) {
                     when (p) {
                         is ByteArray -> ps.setBytes(i + 1, p)
                         is String -> ps.setString(i + 1, p)
+                        is Long -> ps.setLong(i + 1, p)
                         is Int -> ps.setInt(i + 1, p)
                     }
                 }
@@ -70,7 +91,7 @@ class ItemLogQueryRepository(private val ds: DataSource) {
         }
     }
 
-    fun countEvents(playerId: UUID?, type: String?): Long {
+    fun countEvents(playerId: UUID?, type: String?, material: String? = null, fromTime: Long? = null, toTime: Long? = null): Long {
         val sql = StringBuilder("SELECT COUNT(*) FROM item_events WHERE 1=1")
         val params = mutableListOf<Any?>()
         if (playerId != null) {
@@ -81,12 +102,25 @@ class ItemLogQueryRepository(private val ds: DataSource) {
             sql.append(" AND event_type = ?")
             params.add(type)
         }
+        if (material != null) {
+            sql.append(" AND material = ?")
+            params.add(material)
+        }
+        if (fromTime != null) {
+            sql.append(" AND timestamp >= ?")
+            params.add(fromTime)
+        }
+        if (toTime != null) {
+            sql.append(" AND timestamp <= ?")
+            params.add(toTime)
+        }
         ds.connection.use { c ->
             c.prepareStatement(sql.toString()).use { ps ->
                 for ((i, p) in params.withIndex()) {
                     when (p) {
                         is ByteArray -> ps.setBytes(i + 1, p)
                         is String -> ps.setString(i + 1, p)
+                        is Long -> ps.setLong(i + 1, p)
                     }
                 }
                 ps.executeQuery().use { rs -> if (rs.next()) return rs.getLong(1) }
