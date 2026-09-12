@@ -20,6 +20,10 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.11.3")
     testImplementation("io.mockk:mockk:1.13.13")
     testImplementation("io.papermc.paper:paper-api:$paperVersion")
+    // MockBukkit boots a mock server so Material/Registry/ItemStack work in unit tests
+    testImplementation("org.mockbukkit.mockbukkit:mockbukkit-v1.21:4.110.0") {
+        exclude(group = "org.junit.jupiter")
+    }
 }
 java { toolchain.languageVersion.set(JavaLanguageVersion.of(21)) }
 kotlin { jvmToolchain(21) }

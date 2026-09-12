@@ -6,10 +6,7 @@ import com.itemlogadmin.repository.PlayerRepository
 import com.itemlogadmin.service.QueryService
 import com.itemlogadmin.service.RestoreService
 import io.mockk.*
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import java.util.UUID
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -18,7 +15,10 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryView
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
-import java.util.UUID
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 class GuiManagerTest {
 
@@ -36,10 +36,10 @@ class GuiManagerTest {
         restoreService = mockk(relaxed = true)
         playerRepo = mockk(relaxed = true)
         queryRepo = mockk(relaxed = true)
-        
+
         val server = mockk<org.bukkit.Server>(relaxed = true)
         val scheduler = mockk<org.bukkit.scheduler.BukkitScheduler>(relaxed = true)
-        
+
         every { plugin.server } returns server
         every { server.scheduler } returns scheduler
         every { scheduler.runTaskAsynchronously(any<JavaPlugin>(), any<Runnable>()) } answers {
@@ -52,13 +52,13 @@ class GuiManagerTest {
             runnable.run()
             mockk(relaxed = true)
         }
-        
+
         mockkStatic(Bukkit::class)
         every { Bukkit.createInventory(any(), any<Int>(), any<String>()) } returns mockk(relaxed = true)
         every { Bukkit.getOfflinePlayer(any<UUID>()) } returns mockk(relaxed = true) {
             every { name } returns "TestPlayer"
         }
-        
+
         guiManager = GuiManager(plugin, queryService, restoreService, playerRepo, queryRepo)
     }
 
@@ -72,12 +72,12 @@ class GuiManagerTest {
         val player = mockk<Player>(relaxed = true)
         every { player.uniqueId } returns UUID.randomUUID()
         every { player.openInventory(any<Inventory>()) } returns mockk<InventoryView>(relaxed = true)
-        
+
         every { playerRepo.recentlyActive(any(), any(), any()) } returns emptyList()
         every { playerRepo.countDistinct(any()) } returns 0L
-        
+
         guiManager.openPlayerList(player, 0, null)
-        
+
         verify { Bukkit.createInventory(null, 54, match<String> { it.contains("ItemLog") && it.contains("Players") }) }
     }
 
@@ -86,13 +86,13 @@ class GuiManagerTest {
         val player = mockk<Player>(relaxed = true)
         every { player.uniqueId } returns UUID.randomUUID()
         every { player.openInventory(any<Inventory>()) } returns mockk<InventoryView>(relaxed = true)
-        
+
         val query = "Steve"
         every { playerRepo.recentlyActive(any(), any(), query) } returns emptyList()
         every { playerRepo.countDistinct(query) } returns 1L
-        
+
         guiManager.openPlayerList(player, 0, query)
-        
+
         verify { playerRepo.recentlyActive(45, 0, query) }
         verify { Bukkit.createInventory(null, 54, match<String> { it.contains(query) }) }
     }
@@ -102,12 +102,12 @@ class GuiManagerTest {
         val player = mockk<Player>(relaxed = true)
         every { player.uniqueId } returns UUID.randomUUID()
         every { player.openInventory(any<Inventory>()) } returns mockk<InventoryView>(relaxed = true)
-        
+
         every { playerRepo.recentlyActive(any(), any(), any()) } returns emptyList()
         every { playerRepo.countDistinct(any()) } returns 0L
-        
+
         guiManager.openPlayerList(player, 2, null)
-        
+
         verify { playerRepo.recentlyActive(45, 90, null) } // page 2 * 45 = 90
     }
 
@@ -116,24 +116,24 @@ class GuiManagerTest {
         val player = mockk<Player>(relaxed = true)
         val playerId = UUID.randomUUID()
         val targetId = UUID.randomUUID()
-        
+
         every { player.uniqueId } returns playerId
         every { player.openInventory(any<Inventory>()) } returns mockk<InventoryView>(relaxed = true)
-        
+
         every { queryService.getEvents(any(), any(), any(), any(), any(), any(), any()) } returns (emptyList<ItemEventView>() to 0L)
-        
+
         guiManager.openEventList(player, targetId, 0, null, null, null)
-        
+
         // State should be stored
         val clickEvent = mockk<InventoryClickEvent>(relaxed = true)
         every { clickEvent.whoClicked } returns player
         every { clickEvent.isCancelled = any() } just Runs
         every { clickEvent.rawSlot } returns 53 // Close button
         every { clickEvent.currentItem } returns ItemStack(Material.BARRIER)
-        
+
         // Trigger click to check state was stored
         guiManager.onClick(clickEvent)
-        
+
         verify { player.closeInventory() }
     }
 
@@ -144,21 +144,21 @@ class GuiManagerTest {
         every { player.uniqueId } returns playerId
         every { player.closeInventory() } just Runs
         every { player.openInventory(any<Inventory>()) } returns mockk<InventoryView>(relaxed = true)
-        
+
         every { playerRepo.recentlyActive(any(), any(), any()) } returns emptyList()
         every { playerRepo.countDistinct(any()) } returns 0L
-        
+
         // Open player list to set state
         guiManager.openPlayerList(player, 0, null)
-        
+
         val clickEvent = mockk<InventoryClickEvent>(relaxed = true)
         every { clickEvent.whoClicked } returns player
         every { clickEvent.isCancelled = any() } just Runs
         every { clickEvent.rawSlot } returns 53 // Close button
         every { clickEvent.currentItem } returns ItemStack(Material.BARRIER)
-        
+
         guiManager.onClick(clickEvent)
-        
+
         verify { player.closeInventory() }
     }
 
@@ -168,21 +168,21 @@ class GuiManagerTest {
         val playerId = UUID.randomUUID()
         every { player.uniqueId } returns playerId
         every { player.openInventory(any<Inventory>()) } returns mockk<InventoryView>(relaxed = true)
-        
+
         every { playerRepo.recentlyActive(any(), any(), any()) } returns emptyList()
         every { playerRepo.countDistinct(any()) } returns 100L // More than one page
-        
+
         // Open player list on page 1
         guiManager.openPlayerList(player, 1, null)
-        
+
         val clickEvent = mockk<InventoryClickEvent>(relaxed = true)
         every { clickEvent.whoClicked } returns player
         every { clickEvent.isCancelled = any() } just Runs
         every { clickEvent.rawSlot } returns 48 // Previous button
         every { clickEvent.currentItem } returns ItemStack(Material.ARROW)
-        
+
         guiManager.onClick(clickEvent)
-        
+
         // Should open page 0
         verify(atLeast = 1) { playerRepo.recentlyActive(45, 0, null) }
     }
@@ -191,13 +191,13 @@ class GuiManagerTest {
     fun `onClick ignores clicks without state`() {
         val player = mockk<Player>(relaxed = true)
         every { player.uniqueId } returns UUID.randomUUID()
-        
+
         val clickEvent = mockk<InventoryClickEvent>(relaxed = true)
         every { clickEvent.whoClicked } returns player
         every { clickEvent.isCancelled = any() } just Runs
-        
+
         guiManager.onClick(clickEvent)
-        
+
         // Should only set cancelled, no other actions
         verify { clickEvent.isCancelled = any() }
         verify(exactly = 0) { player.closeInventory() }

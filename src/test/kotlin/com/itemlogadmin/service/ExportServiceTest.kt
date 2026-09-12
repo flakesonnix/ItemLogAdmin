@@ -3,16 +3,16 @@ package com.itemlogadmin.service
 import com.itemlogadmin.model.ItemEventView
 import com.itemlogadmin.repository.ItemLogQueryRepository
 import io.mockk.*
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import java.io.File
+import java.util.UUID
 import org.bukkit.Bukkit
 import org.bukkit.OfflinePlayer
 import org.bukkit.Server
 import org.bukkit.plugin.java.JavaPlugin
-import java.io.File
-import java.util.UUID
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 class ExportServiceTest {
 
@@ -25,13 +25,13 @@ class ExportServiceTest {
     fun setup() {
         plugin = mockk(relaxed = true)
         queryRepo = mockk(relaxed = true)
-        
+
         testDir = File(System.getProperty("java.io.tmpdir"), "itemlog-test-${System.currentTimeMillis()}")
         testDir.mkdirs()
-        
+
         every { plugin.dataFolder } returns testDir
         every { plugin.logger } returns mockk(relaxed = true)
-        
+
         // Mock Bukkit static methods
         mockkStatic(Bukkit::class)
         val server = mockk<Server>(relaxed = true)
@@ -39,7 +39,7 @@ class ExportServiceTest {
         every { Bukkit.getOfflinePlayer(any<UUID>()) } returns mockk<OfflinePlayer>(relaxed = true) {
             every { name } returns "TestPlayer"
         }
-        
+
         service = ExportService(plugin, queryRepo)
     }
 
@@ -52,9 +52,9 @@ class ExportServiceTest {
     @Test
     fun `exportToCsv creates file with header`() {
         every { queryRepo.findEvents(any(), any(), any(), any(), any(), any(), any()) } returns emptyList()
-        
+
         val file = service.exportToCsv(null, null, null, 100)
-        
+
         assertNotNull(file)
         assertTrue(file!!.exists())
         assertTrue(file.readText().contains("EventID,Type,Timestamp,DateTime,PlayerID"))
@@ -79,13 +79,13 @@ class ExportServiceTest {
             source = "PLAYER_PICKUP",
             hasBefore = false,
             hasAfter = true,
-            restored = false
+            restored = false,
         )
-        
+
         every { queryRepo.findEvents(any(), any(), any(), any(), any(), any(), any()) } returns listOf(event)
-        
+
         val file = service.exportToCsv(playerId, null, null, 100)
-        
+
         assertNotNull(file)
         val content = file!!.readText()
         assertTrue(content.contains(eventId.toString()))
@@ -110,21 +110,21 @@ class ExportServiceTest {
                 source = "TEST",
                 hasBefore = false,
                 hasAfter = true,
-                restored = false
+                restored = false,
             )
         }
-        
+
         // Return batches of 1000
         every { queryRepo.findEvents(any(), any(), any(), any(), any(), 1000, 0) } returns events.take(1000)
         every { queryRepo.findEvents(any(), any(), any(), any(), any(), 1000, 1000) } returns events.drop(1000).take(1000)
         every { queryRepo.findEvents(any(), any(), any(), any(), any(), 1000, 2000) } returns events.drop(2000).take(500)
-        
+
         val file = service.exportToCsv(null, null, null, 10000)
-        
+
         assertNotNull(file)
         val lines = file!!.readLines()
         assertEquals(2501, lines.size) // 2500 events + 1 header
-        
+
         verify(exactly = 3) { queryRepo.findEvents(any(), any(), any(), any(), any(), 1000, any()) }
     }
 
@@ -143,13 +143,13 @@ class ExportServiceTest {
             source = "TEST,SOURCE",
             hasBefore = false,
             hasAfter = true,
-            restored = false
+            restored = false,
         )
-        
+
         every { queryRepo.findEvents(any(), any(), any(), any(), any(), any(), any()) } returns listOf(event)
-        
+
         val file = service.exportToCsv(null, null, null, 100)
-        
+
         assertNotNull(file)
         val content = file!!.readText()
         assertTrue(content.contains("\"TEST,SOURCE\""))
@@ -159,11 +159,11 @@ class ExportServiceTest {
     @Test
     fun `exportToCsv filters by playerId`() {
         val playerId = UUID.randomUUID()
-        
+
         every { queryRepo.findEvents(playerId, any(), any(), any(), any(), any(), any()) } returns emptyList()
-        
+
         service.exportToCsv(playerId, null, null, 100)
-        
+
         verify { queryRepo.findEvents(playerId, any(), any(), any(), any(), any(), any()) }
     }
 
@@ -171,20 +171,20 @@ class ExportServiceTest {
     fun `exportToCsv filters by time range`() {
         val fromTime = 1700000000000L
         val toTime = 1700001000000L
-        
+
         every { queryRepo.findEvents(any(), any(), any(), fromTime, toTime, any(), any()) } returns emptyList()
-        
+
         service.exportToCsv(null, fromTime, toTime, 100)
-        
+
         verify { queryRepo.findEvents(null, null, null, fromTime, toTime, any(), any()) }
     }
 
     @Test
     fun `exportToCsv returns null on error`() {
         every { queryRepo.findEvents(any(), any(), any(), any(), any(), any(), any()) } throws RuntimeException("DB error")
-        
+
         val file = service.exportToCsv(null, null, null, 100)
-        
+
         assertNull(file)
     }
 
@@ -192,11 +192,11 @@ class ExportServiceTest {
     fun `exportToCsv creates export directory if not exists`() {
         val exportDir = File(testDir, "exports")
         assertFalse(exportDir.exists())
-        
+
         every { queryRepo.findEvents(any(), any(), any(), any(), any(), any(), any()) } returns emptyList()
-        
+
         service.exportToCsv(null, null, null, 100)
-        
+
         assertTrue(exportDir.exists())
         assertTrue(exportDir.isDirectory)
     }
@@ -208,9 +208,9 @@ class ExportServiceTest {
         every { Bukkit.getOfflinePlayer(playerId) } returns mockk {
             every { name } returns "Steve"
         }
-        
+
         val file = service.exportToCsv(playerId, null, null, 100)
-        
+
         assertNotNull(file)
         assertTrue(file!!.name.contains("Steve"))
     }
@@ -231,15 +231,15 @@ class ExportServiceTest {
                 source = "TEST",
                 hasBefore = false,
                 hasAfter = true,
-                restored = false
+                restored = false,
             )
         }
-        
+
         every { queryRepo.findEvents(any(), any(), any(), any(), any(), 1000, 0) } returns events
         every { queryRepo.findEvents(any(), any(), any(), any(), any(), 1000, 1000) } returns emptyList()
-        
+
         val file = service.exportToCsv(null, null, null, 50)
-        
+
         assertNotNull(file)
         // Should stop after hitting limit even though there are more events
         verify(atMost = 1) { queryRepo.findEvents(any(), any(), any(), any(), any(), 1000, 0) }
@@ -248,15 +248,15 @@ class ExportServiceTest {
     @Test
     fun `getPlayerStats returns correct statistics`() {
         val playerId = UUID.randomUUID()
-        
+
         every { queryRepo.countEvents(playerId, null, null, null, null) } returns 1000L
         every { queryRepo.countEvents(playerId, "PICKUP", null, null, null) } returns 300L
         every { queryRepo.countEvents(playerId, "DROP", null, null, null) } returns 200L
         every { queryRepo.countEvents(playerId, "DEATH_DROP", null, null, null) } returns 50L
         every { queryRepo.countEvents(playerId, "CRAFT_RESULT", null, null, null) } returns 150L
-        
+
         val stats = service.getPlayerStats(playerId)
-        
+
         assertEquals(1000L, stats.totalEvents)
         assertEquals(300L, stats.pickups)
         assertEquals(200L, stats.drops)
@@ -271,9 +271,9 @@ class ExportServiceTest {
         every { queryRepo.countEvents(null, "DROP", null, null, null) } returns 1000L
         every { queryRepo.countEvents(null, "DEATH_DROP", null, null, null) } returns 500L
         every { queryRepo.countEvents(null, "CRAFT_RESULT", null, null, null) } returns 800L
-        
+
         val stats = service.getPlayerStats(null)
-        
+
         assertEquals(5000L, stats.totalEvents)
         assertEquals(1500L, stats.pickups)
     }

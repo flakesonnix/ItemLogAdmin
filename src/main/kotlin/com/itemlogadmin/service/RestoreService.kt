@@ -78,7 +78,7 @@ class RestoreService(
         }
         if (itemJson == null) return Result.Failed("no snapshot")
         val actualTarget = target ?: targetUuid?.let { Bukkit.getPlayer(it) } ?: Bukkit.getPlayer(admin.uniqueId) ?: admin
-        
+
         // Deserialize itemJson via ItemSerializer from ItemLog plugin
         val toGive = try {
             val itemLogPlugin = Bukkit.getPluginManager().getPlugin("ItemLog")
@@ -97,7 +97,7 @@ class RestoreService(
                 }
             }
         } catch (e: Exception) {
-            plugin.logger.warning("Failed to deserialize item ${eventId}: ${e.message}")
+            plugin.logger.warning("Failed to deserialize item $eventId: ${e.message}")
             ItemStack(org.bukkit.Material.PAPER).apply {
                 val meta = itemMeta!!
                 meta.setDisplayName("§cFailed to Restore ${eventId.toString().take(8)}")

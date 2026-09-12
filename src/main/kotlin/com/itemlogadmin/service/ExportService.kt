@@ -145,7 +145,7 @@ class ExportService(
         val drops = queryRepo.countEvents(playerId, "DROP", null, null, null)
         val deaths = queryRepo.countEvents(playerId, "DEATH_DROP", null, null, null)
         val crafts = queryRepo.countEvents(playerId, "CRAFT_RESULT", null, null, null)
-        
+
         // Most lost/gained would need group by queries - leave null for now
         return PlayerStats(
             totalEvents = total,
